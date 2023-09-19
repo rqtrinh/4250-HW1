@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------
 # AUTHOR: Ryan Trinh
 # FILENAME: search_engine.py
-# SPECIFICATION: Read csv files and determine which documents to retreive calcuatre df-idf/recall/precision
+# SPECIFICATION: Read csv files and determine which documents to retrieve by calcualting df-idf, calculate precision/recall
 # FOR: CS 4250- Assignment #1
 # TIME SPENT: 2 hours
 #-----------------------------------------------------------*/
@@ -24,8 +24,6 @@ with open('collection.csv', 'r') as csvfile:
             documents.append (row[0])
             labels.append(row[1])
 
-print(documents)
-# print(labels)
 
 #Conduct stopword removal.
 #--> add your Python code here
@@ -36,14 +34,11 @@ for i in range(len(documents)):
   #Remove white spaces from front and back of string
   documents[i] = " ".join(documents[i].split())
 
-#stopword removal query
+#Stopword removal on query
 for word in stopWords:
     query = query.replace(word, "")
 #Remove white spaces from front and back of string
 query = " ".join(query.split())  
-print(query)
-
-
 
 #Conduct stemming.
 #--> add your Python code here
@@ -53,16 +48,16 @@ steeming = {
   "loves": "love",
 }
 
+#Replace keys with value in documents
 for i in range(len(documents)):
     for key in steeming.keys():
         if key in documents[i]:
           documents[i] = documents[i].replace(key, steeming[key])
-print(documents)
 
+#Replace keys with value in query
 for key in steeming.keys():
     if key in query:
       query = query.replace(key, steeming[key])
-print("Query:", query)
 
 
 #Identify the index terms.
@@ -72,21 +67,20 @@ for document in documents:
     for word in document.split():
         if word not in terms:
             terms.append(word)
-print(terms)
 
+# Find Query weights (binary)
 query_weights = []
-#Query weights
 for word in terms:
     if word in query:
         query_weights.append(1)
     else:
         query_weights.append(0)
-print("Query weights:", query_weights)
 
 #Build the tf-idf term weights matrix.
 #--> add your Python code here
 docMatrix = []
 
+#List of idf for corresponding terms list
 terms_idf = []
 for i in range(len(terms)):
     #Calculate df for term
@@ -95,43 +89,42 @@ for i in range(len(terms)):
         if terms[i] in document:
             df += 1
     #Calculate idf for term 
-    print("length", len(documents))
-    print("df", df)
-
     idf = math.log10(len(documents)/df)
     terms_idf.append(idf)
 
+#Creade docMatrix with help of terms_idf
 for document in documents:
+    #D
     total_words = len(document.split())
+    #list of tf-idf for each term in doc
     document_tf_idf = []
 
+    #get tf-idf for each term
     for i in range(len(terms)):
         terms_doc = document.count(terms[i])
         tf = terms_doc/total_words
         document_tf_idf.append(tf*terms_idf[i])
+    #append list tf-idf of each term to matrix
     docMatrix.append(document_tf_idf)
 
-print(docMatrix)
 
 
 #Calculate the document scores (ranking) using document weigths (tf-idf) calculated before and query weights (binary - have or not the term).
 #--> add your Python code here
 docScores = []
+#Multiply tf_idf_scores with query weights and sum up for each document
 for tf_idf_scores in docMatrix:
     docScore = 0
     for i in range(len(tf_idf_scores)):
         docScore += query_weights[i] * tf_idf_scores[i]
     docScores.append(round(docScore,2))
 
-print(docScores)
+
 #Calculate and print the precision and recall of the model by considering that the search engine will return all documents with scores >= 0.1.
 #--> add your Python code here
-a = 0
-b = 0 
-c = 0 
-d = 0
-
-print(labels)
+a = 0 #hits
+b = 0 #noise
+c = 0 #misses
 for i in range(len(docScores)):
     if docScores[i] >= 0.1 and labels[i] == " R":
         a += 1
@@ -139,8 +132,9 @@ for i in range(len(docScores)):
         b += 1
     elif docScores[i] < 0.1 and labels[i] == " R":
         c += 1
-    else:
-        d += 1
 
-print("Recall", a/(a+c) * 100)
-print("Precision", a/(a+b) * 100)
+precision = round(a/(a+b) * 100)
+recall = round(a/(a+c) * 100)
+#Print precision and recall
+print(f"Precision: {precision}%")
+print(f"Recall: {recall}%")
